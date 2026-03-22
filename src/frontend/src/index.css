@@ -1,0 +1,62 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.25rem;
+    /* Warm cream background: #F3EBDD */
+    --background: 0.942 0.022 78;
+    --foreground: 0.145 0.008 60;
+    /* Card slightly lighter */
+    --card: 0.97 0.014 78;
+    --card-foreground: 0.145 0.008 60;
+    --popover: 0.97 0.014 78;
+    --popover-foreground: 0.145 0.008 60;
+    /* Primary = dark charcoal #2F2F2F */
+    --primary: 0.22 0.006 60;
+    --primary-foreground: 0.97 0.014 78;
+    /* Secondary = lighter warm surface */
+    --secondary: 0.91 0.018 75;
+    --secondary-foreground: 0.22 0.006 60;
+    /* Muted = warm gray #6E6A63 */
+    --muted: 0.91 0.018 75;
+    --muted-foreground: 0.48 0.015 60;
+    /* Accent = blush pink */
+    --accent: 0.89 0.03 20;
+    --accent-foreground: 0.22 0.006 60;
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.985 0 0;
+    /* Border: #E6DED2 */
+    --border: 0.89 0.02 70;
+    --input: 0.89 0.02 70;
+    --ring: 0.22 0.006 60;
+    --chart-1: 0.646 0.222 41.116;
+    --chart-2: 0.6 0.118 184.704;
+    --chart-3: 0.398 0.07 227.392;
+    --chart-4: 0.828 0.189 84.429;
+    --chart-5: 0.769 0.188 70.08;
+    --sidebar: 0.97 0.014 78;
+    --sidebar-foreground: 0.145 0.008 60;
+    --sidebar-primary: 0.22 0.006 60;
+    --sidebar-primary-foreground: 0.97 0.014 78;
+    --sidebar-accent: 0.91 0.018 75;
+    --sidebar-accent-foreground: 0.22 0.006 60;
+    --sidebar-border: 0.89 0.02 70;
+    --sidebar-ring: 0.22 0.006 60;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Inter", sans-serif;
+  }
+
+  .font-serif {
+    font-family: "Cormorant Garamond", serif;
+  }
+}
