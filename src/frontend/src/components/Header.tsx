@@ -7,12 +7,13 @@ import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useGetWishlistCount, useIsCallerAdmin } from "../hooks/useQueries";
 
 const NAV_LINKS = [
-  { label: "New In", href: "/catalog" },
-  { label: "Apparel", href: "/catalog" },
-  { label: "Dresses", href: "/catalog" },
-  { label: "Accessories", href: "/catalog" },
-  { label: "Bestsellers", href: "/catalog" },
-  { label: "Sale", href: "/catalog" },
+  { label: "New In", href: "/catalog", category: "" },
+  { label: "Crop Tops", href: "/catalog", category: "Crop Top Collection" },
+  { label: "Dresses", href: "/catalog", category: "Dress Collection" },
+  { label: "Tank Tops", href: "/catalog", category: "Tank Top Collection" },
+  { label: "Bodycon", href: "/catalog", category: "Bodycon Collection" },
+  { label: "Navratri", href: "/catalog", category: "Navratri Collection" },
+  { label: "Sale", href: "/catalog", category: "", sale: "true" },
 ];
 
 export default function Header() {
@@ -51,36 +52,47 @@ export default function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-shadow duration-300 ${scrolled ? "shadow-card" : ""}`}
+      className={`sticky top-0 z-50 transition-shadow duration-300 ${
+        scrolled ? "shadow-card" : ""
+      }`}
     >
       {/* Announcement bar */}
       <div className="bg-primary text-primary-foreground text-center py-2 px-4">
         <p className="text-xs tracking-widest uppercase">
-          Sophisticated female clothing — Free shipping on orders over ₹2000
+          ✨ Anya Clothing — Free shipping on orders over ₹2000
         </p>
       </div>
 
       {/* Main header */}
-      <div className="bg-cream-light border-b border-warm-border">
+      <div className="bg-background border-b border-warm-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex-shrink-0" data-ocid="nav.link">
-              <span className="font-serif text-4xl font-bold tracking-widest text-foreground">
+              <span
+                className="font-serif text-4xl font-bold tracking-widest text-foreground"
+                style={{ letterSpacing: "0.25em" }}
+              >
                 ANYA
               </span>
             </Link>
 
             {/* Desktop Nav */}
             <nav
-              className="hidden lg:flex items-center gap-7"
+              className="hidden lg:flex items-center gap-6"
               aria-label="Main navigation"
             >
               {NAV_LINKS.map((link) => (
                 <Link
                   key={link.label}
                   to={link.href}
-                  className="text-xs font-medium tracking-widest uppercase text-warm-gray hover:text-foreground transition-colors"
+                  search={{
+                    q: "",
+                    category: link.category ?? "",
+                    bestsellers: "",
+                    sale: link.sale ?? "",
+                  }}
+                  className="text-xs font-medium tracking-widest uppercase text-warm-gray hover:text-primary transition-colors"
                   data-ocid="nav.link"
                 >
                   {link.label}
@@ -90,21 +102,19 @@ export default function Header() {
 
             {/* Right icons */}
             <div className="flex items-center gap-4">
-              {/* Search icon */}
               <button
                 type="button"
                 onClick={() => setSearchOpen(!searchOpen)}
-                className="p-1 text-warm-gray hover:text-foreground transition-colors"
+                className="p-1 text-warm-gray hover:text-primary transition-colors"
                 aria-label="Toggle search"
                 data-ocid="nav.search_input"
               >
                 {searchOpen ? <X size={18} /> : <Search size={18} />}
               </button>
 
-              {/* Wishlist */}
               <Link
                 to="/wishlist"
-                className="relative p-1 text-warm-gray hover:text-foreground transition-colors"
+                className="relative p-1 text-warm-gray hover:text-primary transition-colors"
                 data-ocid="nav.link"
               >
                 <Heart size={18} />
@@ -115,21 +125,19 @@ export default function Header() {
                 )}
               </Link>
 
-              {/* Admin */}
               {isAdmin && identity && (
                 <Link
                   to="/admin"
-                  className="p-1 text-warm-gray hover:text-foreground transition-colors"
+                  className="p-1 text-warm-gray hover:text-primary transition-colors"
                   data-ocid="nav.link"
                 >
                   <Settings size={18} />
                 </Link>
               )}
 
-              {/* Mobile menu */}
               <button
                 type="button"
-                className="lg:hidden p-1 text-warm-gray hover:text-foreground"
+                className="lg:hidden p-1 text-warm-gray hover:text-primary"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label="Toggle menu"
               >
@@ -183,8 +191,14 @@ export default function Header() {
                   <Link
                     key={link.label}
                     to={link.href}
+                    search={{
+                      q: "",
+                      category: link.category ?? "",
+                      bestsellers: "",
+                      sale: link.sale ?? "",
+                    }}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="text-sm font-medium tracking-widest uppercase text-warm-gray hover:text-foreground"
+                    className="text-sm font-medium tracking-widest uppercase text-warm-gray hover:text-primary"
                     data-ocid="nav.link"
                   >
                     {link.label}

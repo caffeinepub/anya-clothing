@@ -80,32 +80,42 @@ actor {
   let userProfiles = Map.empty<Principal, UserProfile>();
   var productIdCounter = 0;
 
+  // Helper: check if caller is authenticated (not anonymous)
+  func isAuthenticated(caller : Principal) : Bool {
+    not caller.isAnonymous();
+  };
+
+  // Check if caller is store owner (authenticated user)
+  public query ({ caller }) func isCallerStoreOwner() : async Bool {
+    isAuthenticated(caller);
+  };
+
   // User Profile Functions
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view profiles");
+    if (not isAuthenticated(caller)) {
+      Runtime.trap("Unauthorized: Must be logged in");
     };
     userProfiles.get(caller);
   };
 
   public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
-    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Can only view your own profile");
+    if (caller != user and not isAuthenticated(caller)) {
+      Runtime.trap("Unauthorized: Must be logged in");
     };
     userProfiles.get(user);
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can save profiles");
+    if (not isAuthenticated(caller)) {
+      Runtime.trap("Unauthorized: Must be logged in");
     };
     userProfiles.add(caller, profile);
   };
 
-  // Product CRUD (admin-only)
+  // Product CRUD (any authenticated user - store owner)
   public shared ({ caller }) func addProduct(input : ProductInput) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can add products");
+    if (not isAuthenticated(caller)) {
+      Runtime.trap("Unauthorized: Must be logged in to add products");
     };
     let product : Product = {
       input with
@@ -119,8 +129,8 @@ actor {
   };
 
   public shared ({ caller }) func updateProduct(id : Nat, input : ProductInput) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can update products");
+    if (not isAuthenticated(caller)) {
+      Runtime.trap("Unauthorized: Must be logged in to update products");
     };
     let product : Product = getProductInternal(id);
     let updatedProduct : Product = {
@@ -131,8 +141,8 @@ actor {
   };
 
   public shared ({ caller }) func deleteProduct(id : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can delete products");
+    if (not isAuthenticated(caller)) {
+      Runtime.trap("Unauthorized: Must be logged in to delete products");
     };
     if (not products.containsKey(id)) {
       Runtime.trap("Product not found");
@@ -141,21 +151,21 @@ actor {
   };
 
   // Product Queries (accessible to all including guests)
-  public query ({ caller }) func getAllProducts() : async [Product] {
+  public query func getAllProducts() : async [Product] {
     products.values().toArray().sort(Product.compareByCreatedAt);
   };
 
-  public query ({ caller }) func getProductById(id : Nat) : async Product {
+  public query func getProductById(id : Nat) : async Product {
     getProductInternal(id);
   };
 
-  public query ({ caller }) func getBestsellers() : async [Product] {
+  public query func getBestsellers() : async [Product] {
     products.values().toArray().filter(
       func(product) { product.isBestseller }
     ).sort(Product.compareByPrice);
   };
 
-  public query ({ caller }) func searchProducts(searchText : Text) : async [Product] {
+  public query func searchProducts(searchText : Text) : async [Product] {
     let lowerSearch = searchText.toLower();
     products.values().toArray().filter(
       func(product) {
@@ -164,7 +174,7 @@ actor {
     ).sort(Product.compareByPrice);
   };
 
-  public query ({ caller }) func filterProducts(sizes : ?[Text], colors : ?[Color], minPrice : ?Float, maxPrice : ?Float, category : ?Text) : async [Product] {
+  public query func filterProducts(sizes : ?[Text], colors : ?[Color], minPrice : ?Float, maxPrice : ?Float, category : ?Text) : async [Product] {
     products.values().toArray().filter(
       func(product) {
         let sizeFilter = switch (sizes) {
@@ -208,10 +218,10 @@ actor {
     ).sort(Product.compareByPrice);
   };
 
-  // Wishlist functionality (user-only)
+  // Wishlist functionality (authenticated users only)
   public shared ({ caller }) func addToWishlist(productId : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can manage wishlists");
+    if (not isAuthenticated(caller)) {
+      Runtime.trap("Unauthorized: Must be logged in");
     };
     ignore getProductInternal(productId);
     let currentWishlist = switch (wishlists.get(caller)) {
@@ -226,8 +236,8 @@ actor {
   };
 
   public shared ({ caller }) func removeFromWishlist(productId : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can manage wishlists");
+    if (not isAuthenticated(caller)) {
+      Runtime.trap("Unauthorized: Must be logged in");
     };
     let currentWishlist = switch (wishlists.get(caller)) {
       case (null) { return };
@@ -238,8 +248,8 @@ actor {
   };
 
   public query ({ caller }) func getWishlist() : async Wishlist {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view wishlists");
+    if (not isAuthenticated(caller)) {
+      Runtime.trap("Unauthorized: Must be logged in");
     };
     switch (wishlists.get(caller)) {
       case (null) { [] };
@@ -248,8 +258,8 @@ actor {
   };
 
   public query ({ caller }) func getWishlistCount() : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view wishlist count");
+    if (not isAuthenticated(caller)) {
+      Runtime.trap("Unauthorized: Must be logged in");
     };
     switch (wishlists.get(caller)) {
       case (null) { 0 };

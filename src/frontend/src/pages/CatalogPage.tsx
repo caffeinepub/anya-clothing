@@ -20,13 +20,14 @@ import {
 } from "../hooks/useQueries";
 
 const SIZES = ["XS", "S", "M", "L"];
-const CATEGORIES = [
+const COLLECTIONS = [
   "All",
-  "Dresses",
-  "Tops",
-  "Bottoms",
-  "Apparel",
-  "Accessories",
+  "Crop Top Collection",
+  "Dress Collection",
+  "Tank Top Collection",
+  "Bodycon Collection",
+  "Navratri Collection",
+  "Mini Dress Collection",
 ];
 
 const ALL_COLORS = [
@@ -68,6 +69,7 @@ export default function CatalogPage() {
 
   useEffect(() => {
     if (search.category) setSelectedCategory(search.category);
+    else setSelectedCategory("All");
   }, [search.category]);
 
   const { data: allProducts = [], isLoading } = useGetAllProducts();
@@ -76,6 +78,16 @@ export default function CatalogPage() {
   const { data: wishlistIds = [] } = useGetWishlist();
 
   const baseProducts = searchQuery ? searchResults : allProducts;
+
+  const dynamicCollections = useMemo(() => {
+    const fromProducts = [...new Set(allProducts.map((p) => p.category))];
+    const merged = [
+      "All",
+      ...COLLECTIONS.filter((c) => c !== "All"),
+      ...fromProducts.filter((c) => !COLLECTIONS.includes(c)),
+    ];
+    return merged;
+  }, [allProducts]);
 
   const filteredProducts = useMemo(() => {
     let result = [...baseProducts];
@@ -146,25 +158,25 @@ export default function CatalogPage() {
         </button>
       </div>
 
-      {/* Category */}
+      {/* Collection */}
       <div>
         <h4 className="text-xs font-medium tracking-widest uppercase mb-3">
-          Category
+          Collection
         </h4>
         <div className="space-y-2">
-          {CATEGORIES.map((cat) => (
+          {dynamicCollections.map((col) => (
             <button
               type="button"
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
+              key={col}
+              onClick={() => setSelectedCategory(col)}
               className={`block w-full text-left text-sm px-3 py-1.5 transition-colors ${
-                selectedCategory === cat
+                selectedCategory === col
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               }`}
               data-ocid="catalog.tab"
             >
-              {cat}
+              {col}
             </button>
           ))}
         </div>

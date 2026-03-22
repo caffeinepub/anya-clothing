@@ -89,6 +89,7 @@ export interface _SERVICE {
   'getWishlist' : ActorMethod<[], Wishlist>,
   'getWishlistCount' : ActorMethod<[], bigint>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'isCallerStoreOwner' : ActorMethod<[], boolean>,
   'removeFromWishlist' : ActorMethod<[bigint], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'searchProducts' : ActorMethod<[string], Array<Product>>,

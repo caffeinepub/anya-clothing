@@ -157,6 +157,7 @@ export interface backendInterface {
     getWishlist(): Promise<Wishlist>;
     getWishlistCount(): Promise<bigint>;
     isCallerAdmin(): Promise<boolean>;
+    isCallerStoreOwner(): Promise<boolean>;
     removeFromWishlist(productId: bigint): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     searchProducts(searchText: string): Promise<Array<Product>>;
@@ -456,6 +457,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.isCallerAdmin();
+            return result;
+        }
+    }
+    async isCallerStoreOwner(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.isCallerStoreOwner();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.isCallerStoreOwner();
             return result;
         }
     }
