@@ -14,6 +14,18 @@ export function useGetAllProducts() {
   });
 }
 
+export function useGetProductById(id: bigint | null) {
+  const { actor, isFetching } = useActor();
+  return useQuery<Product | null>({
+    queryKey: ["product", id?.toString()],
+    queryFn: async () => {
+      if (!actor || id === null) return null;
+      return actor.getProductById(id);
+    },
+    enabled: !!actor && !isFetching && id !== null,
+  });
+}
+
 export function useGetBestsellers() {
   const { actor, isFetching } = useActor();
   return useQuery<Product[]>({

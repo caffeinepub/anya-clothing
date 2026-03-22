@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Heart } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
@@ -53,106 +54,117 @@ export default function ProductCard({
       className="group cursor-pointer"
       data-ocid={`products.item.${index + 1}`}
     >
-      {/* Image container */}
-      <div
-        className="relative overflow-hidden bg-secondary"
-        style={{ aspectRatio: "3/4" }}
+      <Link
+        to="/product/$id"
+        params={{ id: String(product.id) }}
+        className="block"
       >
-        <img
-          src={imageUrl}
-          alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-        />
-        {/* Wishlist button */}
-        <button
-          type="button"
-          onClick={handleWishlist}
-          className={`absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm shadow-sm transition-all duration-200 hover:scale-110 ${
-            isInWishlist ? "text-red-500" : "text-warm-gray hover:text-red-400"
-          }`}
-          aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
-          data-ocid={`products.toggle.${index + 1}`}
+        {/* Image container */}
+        <div
+          className="relative overflow-hidden bg-secondary"
+          style={{ aspectRatio: "3/4" }}
         >
-          <Heart size={14} fill={isInWishlist ? "currentColor" : "none"} />
-        </button>
-        {/* Bestseller badge */}
-        {product.isBestseller && (
-          <span className="absolute top-3 left-3 bg-primary text-primary-foreground text-[10px] tracking-widest uppercase px-2 py-1">
-            Bestseller
-          </span>
-        )}
-      </div>
-
-      {/* Info */}
-      <div className="mt-3 space-y-1.5">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="text-sm font-medium text-foreground leading-tight line-clamp-2">
-            {product.name}
-          </h3>
-          <span className="text-sm font-semibold text-foreground whitespace-nowrap">
-            ₹{product.price.toLocaleString("en-IN")}
-          </span>
-        </div>
-        <p className="text-xs text-muted-foreground tracking-wide uppercase">
-          {product.category}
-        </p>
-
-        {/* Color swatches */}
-        {product.colors.length > 0 && (
-          <div className="flex gap-1.5 flex-wrap">
-            {product.colors.slice(0, 6).map((color, i) => (
-              <button
-                key={color.name}
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setSelectedColor(i);
-                }}
-                title={color.name}
-                className={`w-4 h-4 rounded-full border transition-all duration-150 ${
-                  selectedColor === i
-                    ? "ring-1 ring-offset-1 ring-foreground"
-                    : "border-warm-border"
-                }`}
-                style={{ backgroundColor: color.hex }}
-                aria-label={color.name}
-              />
-            ))}
-            {product.colors.length > 6 && (
-              <span className="text-[10px] text-muted-foreground self-center">
-                +{product.colors.length - 6}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Size chips */}
-        {product.sizes.length > 0 && (
-          <div className="flex gap-1 flex-wrap">
-            {product.sizes.map((size) => (
-              <span
-                key={size}
-                className="text-[10px] px-1.5 py-0.5 border border-warm-border text-warm-gray"
-              >
-                {size}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Remove button (wishlist page) */}
-        {showRemove && (
+          <img
+            src={imageUrl}
+            alt={product.name}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+          />
+          {/* Wishlist button */}
           <button
             type="button"
-            onClick={onRemove}
-            className="text-xs text-muted-foreground underline hover:text-destructive transition-colors mt-1"
-            data-ocid={`wishlist.delete_button.${index + 1}`}
+            onClick={handleWishlist}
+            className={`absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm shadow-sm transition-all duration-200 hover:scale-110 ${
+              isInWishlist
+                ? "text-red-500"
+                : "text-warm-gray hover:text-red-400"
+            }`}
+            aria-label={
+              isInWishlist ? "Remove from wishlist" : "Add to wishlist"
+            }
+            data-ocid={`products.toggle.${index + 1}`}
           >
-            Remove
+            <Heart size={14} fill={isInWishlist ? "currentColor" : "none"} />
           </button>
-        )}
-      </div>
+          {/* Bestseller badge */}
+          {product.isBestseller && (
+            <span className="absolute top-3 left-3 bg-primary text-primary-foreground text-[10px] tracking-widest uppercase px-2 py-1">
+              Bestseller
+            </span>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="mt-3 space-y-1.5">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-sm font-medium text-foreground leading-tight line-clamp-2">
+              {product.name}
+            </h3>
+            <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+              ₹{product.price.toLocaleString("en-IN")}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground tracking-wide uppercase">
+            {product.category}
+          </p>
+
+          {/* Color swatches */}
+          {product.colors.length > 0 && (
+            <div className="flex gap-1.5 flex-wrap">
+              {product.colors.slice(0, 6).map((color, i) => (
+                <button
+                  key={color.name}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSelectedColor(i);
+                  }}
+                  title={color.name}
+                  className={`w-4 h-4 rounded-full border transition-all duration-150 ${
+                    selectedColor === i
+                      ? "ring-1 ring-offset-1 ring-foreground"
+                      : "border-warm-border"
+                  }`}
+                  style={{ backgroundColor: color.hex }}
+                  aria-label={color.name}
+                />
+              ))}
+              {product.colors.length > 6 && (
+                <span className="text-[10px] text-muted-foreground self-center">
+                  +{product.colors.length - 6}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Size chips */}
+          {product.sizes.length > 0 && (
+            <div className="flex gap-1 flex-wrap">
+              {product.sizes.map((size) => (
+                <span
+                  key={size}
+                  className="text-[10px] px-1.5 py-0.5 border border-warm-border text-warm-gray"
+                >
+                  {size}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </Link>
+
+      {/* Remove button (wishlist page) — outside Link to avoid navigation */}
+      {showRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          className="text-xs text-muted-foreground underline hover:text-destructive transition-colors mt-1"
+          data-ocid={`wishlist.delete_button.${index + 1}`}
+        >
+          Remove
+        </button>
+      )}
     </motion.div>
   );
 }

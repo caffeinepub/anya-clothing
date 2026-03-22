@@ -12,6 +12,7 @@ import Header from "./components/Header";
 import AdminPage from "./pages/AdminPage";
 import CatalogPage from "./pages/CatalogPage";
 import HomePage from "./pages/HomePage";
+import ProductDetailPage from "./pages/ProductDetailPage";
 import WishlistPage from "./pages/WishlistPage";
 
 const queryClient = new QueryClient({
@@ -55,6 +56,12 @@ const catalogRoute = createRoute({
   }),
 });
 
+const productRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/product/$id",
+  component: ProductDetailPage,
+});
+
 const wishlistRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/wishlist",
@@ -70,6 +77,7 @@ const adminRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   catalogRoute,
+  productRoute,
   wishlistRoute,
   adminRoute,
 ]);
