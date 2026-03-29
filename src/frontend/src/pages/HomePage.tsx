@@ -17,6 +17,7 @@ const COLLECTIONS = [
     emoji: "🌸",
     gradient: "linear-gradient(135deg, #FBCFE8 0%, #F472B6 100%)",
     textColor: "#831843",
+    isNavratri: false,
   },
   {
     name: "Dress Collection",
@@ -24,6 +25,7 @@ const COLLECTIONS = [
     emoji: "🌹",
     gradient: "linear-gradient(135deg, #FECDD3 0%, #FB7185 100%)",
     textColor: "#881337",
+    isNavratri: false,
   },
   {
     name: "Tank Top Collection",
@@ -31,6 +33,7 @@ const COLLECTIONS = [
     emoji: "✨",
     gradient: "linear-gradient(135deg, #FED7AA 0%, #FB923C 100%)",
     textColor: "#7C2D12",
+    isNavratri: false,
   },
   {
     name: "Bodycon Collection",
@@ -38,6 +41,7 @@ const COLLECTIONS = [
     emoji: "💜",
     gradient: "linear-gradient(135deg, #E9D5FF 0%, #A855F7 100%)",
     textColor: "#581C87",
+    isNavratri: false,
   },
   {
     name: "Navratri Collection",
@@ -45,6 +49,7 @@ const COLLECTIONS = [
     emoji: "🪔",
     gradient: "linear-gradient(135deg, #FEF08A 0%, #FB923C 100%)",
     textColor: "#78350F",
+    isNavratri: true,
   },
   {
     name: "Mini Dress Collection",
@@ -52,6 +57,7 @@ const COLLECTIONS = [
     emoji: "🌺",
     gradient: "linear-gradient(135deg, #FBCFE8 0%, #C084FC 100%)",
     textColor: "#701A75",
+    isNavratri: false,
   },
 ];
 
@@ -296,30 +302,99 @@ export default function HomePage() {
                 }}
                 data-ocid="collections.link"
               >
-                <div
-                  className="relative overflow-hidden rounded-2xl cursor-pointer group shadow-card hover:shadow-card-hover transition-shadow duration-300"
-                  style={{
-                    background: col.gradient,
-                    aspectRatio: "4/3",
-                  }}
-                >
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-                    <span className="text-4xl mb-3">{col.emoji}</span>
-                    <h3
-                      className="font-serif text-xl sm:text-2xl font-semibold text-center"
-                      style={{ color: col.textColor }}
-                    >
-                      {col.label}
-                    </h3>
-                    <span
-                      className="text-xs tracking-widest uppercase mt-2 flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity"
-                      style={{ color: col.textColor }}
-                    >
-                      Shop now <ChevronRight size={11} />
-                    </span>
+                {col.isNavratri ? (
+                  /* ── Special Navratri Card with photo background ── */
+                  <div
+                    className="relative overflow-hidden rounded-2xl cursor-pointer group shadow-card hover:shadow-card-hover transition-shadow duration-300"
+                    style={{ aspectRatio: "4/3" }}
+                  >
+                    {/* Photo background */}
+                    <img
+                      src="/assets/uploads/Screenshot_20260322_130419-2-1.jpg"
+                      alt="Navratri Collection"
+                      className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                    />
+                    {/* Warm amber/orange gradient overlay */}
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        background:
+                          "linear-gradient(160deg, rgba(120,53,15,0.55) 0%, rgba(194,65,12,0.62) 40%, rgba(234,88,12,0.72) 100%)",
+                      }}
+                    />
+                    {/* Decorative top glow */}
+                    <div
+                      className="absolute top-0 left-0 right-0 h-16"
+                      style={{
+                        background:
+                          "linear-gradient(to bottom, rgba(251,191,36,0.35), transparent)",
+                      }}
+                    />
+                    {/* Content */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                      {/* Top diya label */}
+                      <p
+                        className="text-amber-200 text-xs sm:text-sm font-medium tracking-[0.25em] uppercase mb-1"
+                        style={{ textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}
+                      >
+                        🪔 नवरात्रि 🪔
+                      </p>
+                      {/* Main quote */}
+                      <h3
+                        className="font-serif text-base sm:text-lg text-white font-semibold leading-snug mb-2 px-1"
+                        style={{ textShadow: "0 2px 10px rgba(0,0,0,0.6)" }}
+                      >
+                        Celebrate the divine feminine —
+                        <br />
+                        <span className="italic text-amber-100">
+                          dance, devotion &amp; dazzle
+                        </span>
+                      </h3>
+                      {/* Collection label */}
+                      <p
+                        className="text-white/90 font-medium text-sm tracking-widest uppercase mt-1"
+                        style={{ textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}
+                      >
+                        Navratri
+                      </p>
+                      {/* Shop now */}
+                      <span
+                        className="text-amber-200 text-xs tracking-widest uppercase mt-2 flex items-center gap-1 opacity-80 group-hover:opacity-100 group-hover:gap-2 transition-all"
+                        style={{ textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}
+                      >
+                        Shop now <ChevronRight size={11} />
+                      </span>
+                    </div>
+                    {/* Hover shimmer */}
+                    <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors duration-300 rounded-2xl" />
                   </div>
-                  <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-300 rounded-2xl" />
-                </div>
+                ) : (
+                  /* ── Regular gradient cards ── */
+                  <div
+                    className="relative overflow-hidden rounded-2xl cursor-pointer group shadow-card hover:shadow-card-hover transition-shadow duration-300"
+                    style={{
+                      background: col.gradient,
+                      aspectRatio: "4/3",
+                    }}
+                  >
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+                      <span className="text-4xl mb-3">{col.emoji}</span>
+                      <h3
+                        className="font-serif text-xl sm:text-2xl font-semibold text-center"
+                        style={{ color: col.textColor }}
+                      >
+                        {col.label}
+                      </h3>
+                      <span
+                        className="text-xs tracking-widest uppercase mt-2 flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity"
+                        style={{ color: col.textColor }}
+                      >
+                        Shop now <ChevronRight size={11} />
+                      </span>
+                    </div>
+                    <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-300 rounded-2xl" />
+                  </div>
+                )}
               </Link>
             </motion.div>
           ))}

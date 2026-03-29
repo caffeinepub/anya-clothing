@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Heart, Menu, Search, Settings, X } from "lucide-react";
+import { Heart, Menu, Package, Search, Settings, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
@@ -26,6 +26,7 @@ export default function Header() {
   const { data: wishlistCount } = useGetWishlistCount();
   const { data: isAdmin } = useIsCallerAdmin();
   const { identity } = useInternetIdentity();
+  const isLoggedIn = !!identity && !identity.getPrincipal().isAnonymous();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 10);
@@ -125,6 +126,17 @@ export default function Header() {
                 )}
               </Link>
 
+              {isLoggedIn && (
+                <Link
+                  to="/my-orders"
+                  className="p-1 text-warm-gray hover:text-primary transition-colors"
+                  title="My Orders"
+                  data-ocid="nav.link"
+                >
+                  <Package size={18} />
+                </Link>
+              )}
+
               {isAdmin && identity && (
                 <Link
                   to="/admin"
@@ -204,6 +216,16 @@ export default function Header() {
                     {link.label}
                   </Link>
                 ))}
+                {isLoggedIn && (
+                  <Link
+                    to="/my-orders"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-sm font-medium tracking-widest uppercase text-warm-gray hover:text-primary"
+                    data-ocid="nav.link"
+                  >
+                    My Orders
+                  </Link>
+                )}
               </nav>
             </motion.div>
           )}

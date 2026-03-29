@@ -7,17 +7,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Heart, ShoppingBag } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle,
+  Heart,
+  Loader2,
+  MessageCircle,
+  ShoppingBag,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
   useAddToWishlist,
   useGetProductById,
   useGetWishlist,
+  usePlaceOrder,
   useRemoveFromWishlist,
 } from "../hooks/useQueries";
+
+const WHATSAPP_NUMBER = "919876543210";
 
 export default function ProductDetailPage() {
   const { id } = useParams({ strict: false }) as { id: string };
@@ -28,11 +41,20 @@ export default function ProductDetailPage() {
   const { data: wishlistIds = [] } = useGetWishlist();
   const addToWishlist = useAddToWishlist();
   const removeFromWishlist = useRemoveFromWishlist();
+  const placeOrder = usePlaceOrder();
 
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColorIdx, setSelectedColorIdx] = useState(0);
-  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
-  const [orderConfirmed, setOrderConfirmed] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [placedOrderId, setPlacedOrderId] = useState<bigint | null>(null);
+
+  const [form, setForm] = useState({
+    customerName: "",
+    phone: "",
+    email: "",
+    address: "",
+  });
 
   const isInWishlist = wishlistIds.some((wid) => wid === productId);
 
@@ -51,13 +73,31 @@ export default function ProductDetailPage() {
     }
   };
 
-  const handleConfirmOrder = () => {
-    setOrderConfirmed(true);
-    setTimeout(() => {
-      setOrderDialogOpen(false);
-      setOrderConfirmed(false);
-      toast.success("Order placed! We'll contact you soon.");
-    }, 800);
+  const handleCheckoutSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product) return;
+
+    const selectedColor = product.colors[selectedColorIdx];
+
+    try {
+      const orderId = await placeOrder.mutateAsync({
+        productId: product.id,
+        productName: product.name,
+        customerName: form.customerName,
+        phone: form.phone,
+        email: form.email,
+        address: form.address,
+        size: selectedSize ?? "",
+        color: selectedColor?.name ?? "",
+        price: product.price,
+        paymentMethod: "Cash on Delivery",
+      });
+      setPlacedOrderId(orderId);
+      setCheckoutOpen(false);
+      setConfirmOpen(true);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to place order. Please try again.");
+    }
   };
 
   if (isLoading) {
@@ -107,6 +147,10 @@ export default function ProductDetailPage() {
     `https://placehold.co/600x800/F3EBDD/6E6A63?text=${encodeURIComponent(product.name)}`;
 
   const selectedColor = product.colors[selectedColorIdx];
+
+  const whatsappText = encodeURIComponent(
+    `Hi, I just placed an order for ${product.name} (Size: ${selectedSize ?? "N/A"}, Color: ${selectedColor?.name ?? "N/A"}). Order ID: ${placedOrderId?.toString() ?? ""}`,
+  );
 
   return (
     <main
@@ -217,7 +261,7 @@ export default function ProductDetailPage() {
                         ? "bg-foreground text-background border-foreground"
                         : "border-warm-border text-foreground hover:border-foreground"
                     }`}
-                    data-ocid={"product.toggle.size"}
+                    data-ocid="product.toggle.size"
                   >
                     {size}
                   </button>
@@ -234,7 +278,7 @@ export default function ProductDetailPage() {
           {/* Action buttons */}
           <div className="flex gap-3 mt-2">
             <Button
-              onClick={() => setOrderDialogOpen(true)}
+              onClick={() => setCheckoutOpen(true)}
               disabled={product.sizes.length > 0 && !selectedSize}
               className="flex-1 h-12 text-sm tracking-widest uppercase rounded-none bg-foreground text-background hover:bg-primary hover:text-primary-foreground disabled:opacity-40 disabled:cursor-not-allowed"
               data-ocid="product.primary_button"
@@ -261,67 +305,252 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Order Dialog */}
-      <Dialog open={orderDialogOpen} onOpenChange={setOrderDialogOpen}>
+      {/* Checkout Form Dialog */}
+      <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
         <DialogContent
-          className="max-w-sm rounded-none"
+          className="max-w-md rounded-none"
           data-ocid="product.dialog"
         >
           <DialogHeader>
             <DialogTitle className="font-display text-xl">
-              Order Summary
+              Complete Your Order
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="flex justify-between text-sm">
+
+          {/* Order summary */}
+          <div className="bg-secondary/60 rounded-sm px-4 py-3 text-sm space-y-1">
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Product</span>
-              <span className="font-medium text-right max-w-[60%]">
+              <span className="font-medium text-right max-w-[55%]">
                 {product.name}
               </span>
             </div>
             {selectedSize && (
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between">
                 <span className="text-muted-foreground">Size</span>
                 <span className="font-medium">{selectedSize}</span>
               </div>
             )}
             {selectedColor && (
-              <div className="flex justify-between text-sm items-center">
+              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Color</span>
                 <div className="flex items-center gap-2">
                   <div
-                    className="w-4 h-4 rounded-full border border-warm-border"
+                    className="w-3.5 h-3.5 rounded-full border border-warm-border"
                     style={{ backgroundColor: selectedColor.hex }}
                   />
                   <span className="font-medium">{selectedColor.name}</span>
                 </div>
               </div>
             )}
-            <div className="flex justify-between text-sm border-t border-warm-border pt-3">
+            <div className="flex justify-between pt-1 border-t border-warm-border">
               <span className="text-muted-foreground">Total</span>
-              <span className="font-semibold text-primary text-base">
+              <span className="font-semibold text-primary">
                 ₹{product.price.toLocaleString("en-IN")}
               </span>
             </div>
           </div>
-          <DialogFooter className="gap-2">
+
+          <form onSubmit={handleCheckoutSubmit} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="customerName"
+                className="text-xs uppercase tracking-widest"
+              >
+                Full Name *
+              </Label>
+              <Input
+                id="customerName"
+                required
+                placeholder="Your full name"
+                value={form.customerName}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, customerName: e.target.value }))
+                }
+                className="rounded-none border-warm-border"
+                data-ocid="product.input"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="phone"
+                className="text-xs uppercase tracking-widest"
+              >
+                Phone Number *
+              </Label>
+              <Input
+                id="phone"
+                required
+                type="tel"
+                placeholder="+91 98765 43210"
+                value={form.phone}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, phone: e.target.value }))
+                }
+                className="rounded-none border-warm-border"
+                data-ocid="product.input"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="email"
+                className="text-xs uppercase tracking-widest"
+              >
+                Email *
+              </Label>
+              <Input
+                id="email"
+                required
+                type="email"
+                placeholder="you@example.com"
+                value={form.email}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, email: e.target.value }))
+                }
+                className="rounded-none border-warm-border"
+                data-ocid="product.input"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="address"
+                className="text-xs uppercase tracking-widest"
+              >
+                Delivery Address *
+              </Label>
+              <Textarea
+                id="address"
+                required
+                placeholder="House no., Street, City, State, PIN"
+                value={form.address}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, address: e.target.value }))
+                }
+                rows={3}
+                className="rounded-none border-warm-border resize-none"
+                data-ocid="product.textarea"
+              />
+            </div>
+
+            <div className="flex items-center justify-between py-2 px-3 bg-green-50 border border-green-200 rounded-sm">
+              <span className="text-xs font-medium text-green-800 tracking-widest uppercase">
+                Payment
+              </span>
+              <Badge className="bg-green-100 text-green-800 border border-green-300 text-xs">
+                Cash on Delivery
+              </Badge>
+            </div>
+
+            <DialogFooter className="gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCheckoutOpen(false)}
+                className="rounded-none border-warm-border"
+                data-ocid="product.cancel_button"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={placeOrder.isPending}
+                className="rounded-none bg-foreground text-background hover:bg-primary hover:text-primary-foreground flex-1"
+                data-ocid="product.submit_button"
+              >
+                {placeOrder.isPending ? (
+                  <>
+                    <Loader2 size={14} className="mr-2 animate-spin" />{" "}
+                    Placing...
+                  </>
+                ) : (
+                  "Confirm & Place Order"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Order Confirmation Dialog */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent
+          className="max-w-sm rounded-none text-center"
+          data-ocid="product.dialog"
+        >
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+              <CheckCircle size={32} className="text-green-600" />
+            </div>
+            <div>
+              <h2 className="font-display text-2xl font-semibold mb-1">
+                Order Placed! 🎉
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Thank you for shopping with Anya. We'll contact you soon.
+              </p>
+            </div>
+
+            <div className="w-full bg-secondary/60 rounded-sm px-4 py-3 text-sm space-y-1 text-left">
+              {placedOrderId !== null && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Order ID</span>
+                  <span className="font-medium">
+                    #{placedOrderId.toString()}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Product</span>
+                <span className="font-medium text-right max-w-[55%]">
+                  {product.name}
+                </span>
+              </div>
+              {selectedSize && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Size</span>
+                  <span className="font-medium">{selectedSize}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Payment</span>
+                <span className="font-medium">Cash on Delivery</span>
+              </div>
+              <div className="flex justify-between pt-1 border-t border-warm-border">
+                <span className="text-muted-foreground">Total</span>
+                <span className="font-semibold text-primary">
+                  ₹{product.price.toLocaleString("en-IN")}
+                </span>
+              </div>
+            </div>
+
+            <a
+              href={`https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappText}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full"
+              data-ocid="product.link"
+            >
+              <Button className="w-full rounded-none bg-[#25D366] hover:bg-[#1eb857] text-white tracking-wide">
+                <MessageCircle size={16} className="mr-2" />
+                Chat on WhatsApp
+              </Button>
+            </a>
+
             <Button
               variant="outline"
-              onClick={() => setOrderDialogOpen(false)}
-              className="rounded-none border-warm-border"
-              data-ocid="product.cancel_button"
+              onClick={() => {
+                setConfirmOpen(false);
+                navigate({
+                  to: "/catalog",
+                  search: { q: "", category: "", bestsellers: "", sale: "" },
+                });
+              }}
+              className="w-full rounded-none border-warm-border"
+              data-ocid="product.secondary_button"
             >
-              Cancel
+              Continue Shopping
             </Button>
-            <Button
-              onClick={handleConfirmOrder}
-              disabled={orderConfirmed}
-              className="rounded-none bg-foreground text-background hover:bg-primary hover:text-primary-foreground"
-              data-ocid="product.confirm_button"
-            >
-              {orderConfirmed ? "Placing..." : "Confirm Order"}
-            </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </main>

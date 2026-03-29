@@ -47,8 +47,36 @@ export const Product = IDL.Record({
   'colors' : IDL.Vec(Color),
   'price' : IDL.Float64,
 });
+export const Order = IDL.Record({
+  'id' : IDL.Nat,
+  'customerName' : IDL.Text,
+  'status' : IDL.Text,
+  'paymentMethod' : IDL.Text,
+  'userId' : IDL.Principal,
+  'createdAt' : IDL.Int,
+  'color' : IDL.Text,
+  'size' : IDL.Text,
+  'productId' : IDL.Nat,
+  'productName' : IDL.Text,
+  'email' : IDL.Text,
+  'address' : IDL.Text,
+  'phone' : IDL.Text,
+  'price' : IDL.Float64,
+});
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 export const Wishlist = IDL.Vec(IDL.Nat);
+export const OrderInput = IDL.Record({
+  'customerName' : IDL.Text,
+  'paymentMethod' : IDL.Text,
+  'color' : IDL.Text,
+  'size' : IDL.Text,
+  'productId' : IDL.Nat,
+  'productName' : IDL.Text,
+  'email' : IDL.Text,
+  'address' : IDL.Text,
+  'phone' : IDL.Text,
+  'price' : IDL.Float64,
+});
 
 export const idlService = IDL.Service({
   '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -93,10 +121,13 @@ export const idlService = IDL.Service({
       [IDL.Vec(Product)],
       ['query'],
     ),
+  'getAllCategories' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+  'getAllOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
   'getAllProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
   'getBestsellers' : IDL.Func([], [IDL.Vec(Product)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getMyOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
   'getProductById' : IDL.Func([IDL.Nat], [Product], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
@@ -106,10 +137,12 @@ export const idlService = IDL.Service({
   'getWishlist' : IDL.Func([], [Wishlist], ['query']),
   'getWishlistCount' : IDL.Func([], [IDL.Nat], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-    'isCallerStoreOwner' : IDL.Func([], [IDL.Bool], ['query']),
+  'isCallerStoreOwner' : IDL.Func([], [IDL.Bool], ['query']),
+  'placeOrder' : IDL.Func([OrderInput], [IDL.Nat], []),
   'removeFromWishlist' : IDL.Func([IDL.Nat], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'searchProducts' : IDL.Func([IDL.Text], [IDL.Vec(Product)], ['query']),
+  'updateOrderStatus' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'updateProduct' : IDL.Func([IDL.Nat, ProductInput], [], []),
 });
 
@@ -155,8 +188,36 @@ export const idlFactory = ({ IDL }) => {
     'colors' : IDL.Vec(Color),
     'price' : IDL.Float64,
   });
+  const Order = IDL.Record({
+    'id' : IDL.Nat,
+    'customerName' : IDL.Text,
+    'status' : IDL.Text,
+    'paymentMethod' : IDL.Text,
+    'userId' : IDL.Principal,
+    'createdAt' : IDL.Int,
+    'color' : IDL.Text,
+    'size' : IDL.Text,
+    'productId' : IDL.Nat,
+    'productName' : IDL.Text,
+    'email' : IDL.Text,
+    'address' : IDL.Text,
+    'phone' : IDL.Text,
+    'price' : IDL.Float64,
+  });
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
   const Wishlist = IDL.Vec(IDL.Nat);
+  const OrderInput = IDL.Record({
+    'customerName' : IDL.Text,
+    'paymentMethod' : IDL.Text,
+    'color' : IDL.Text,
+    'size' : IDL.Text,
+    'productId' : IDL.Nat,
+    'productName' : IDL.Text,
+    'email' : IDL.Text,
+    'address' : IDL.Text,
+    'phone' : IDL.Text,
+    'price' : IDL.Float64,
+  });
   
   return IDL.Service({
     '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -201,10 +262,13 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(Product)],
         ['query'],
       ),
+    'getAllCategories' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+    'getAllOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
     'getAllProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
     'getBestsellers' : IDL.Func([], [IDL.Vec(Product)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getMyOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
     'getProductById' : IDL.Func([IDL.Nat], [Product], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
@@ -215,9 +279,11 @@ export const idlFactory = ({ IDL }) => {
     'getWishlistCount' : IDL.Func([], [IDL.Nat], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerStoreOwner' : IDL.Func([], [IDL.Bool], ['query']),
+    'placeOrder' : IDL.Func([OrderInput], [IDL.Nat], []),
     'removeFromWishlist' : IDL.Func([IDL.Nat], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'searchProducts' : IDL.Func([IDL.Text], [IDL.Vec(Product)], ['query']),
+    'updateOrderStatus' : IDL.Func([IDL.Nat, IDL.Text], [], []),
     'updateProduct' : IDL.Func([IDL.Nat, ProductInput], [], []),
   });
 };

@@ -12,6 +12,7 @@ import Header from "./components/Header";
 import AdminPage from "./pages/AdminPage";
 import CatalogPage from "./pages/CatalogPage";
 import HomePage from "./pages/HomePage";
+import MyOrdersPage from "./pages/MyOrdersPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import WishlistPage from "./pages/WishlistPage";
 
@@ -74,12 +75,19 @@ const adminRoute = createRoute({
   component: AdminPage,
 });
 
+const myOrdersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/my-orders",
+  component: MyOrdersPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   catalogRoute,
   productRoute,
   wishlistRoute,
   adminRoute,
+  myOrdersRoute,
 ]);
 
 const router = createRouter({ routeTree });

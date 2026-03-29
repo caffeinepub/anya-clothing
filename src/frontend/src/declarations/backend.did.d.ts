@@ -11,6 +11,34 @@ import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export interface Color { 'hex' : string, 'name' : string }
+export interface Order {
+  'id' : bigint,
+  'customerName' : string,
+  'status' : string,
+  'paymentMethod' : string,
+  'userId' : Principal,
+  'createdAt' : bigint,
+  'color' : string,
+  'size' : string,
+  'productId' : bigint,
+  'productName' : string,
+  'email' : string,
+  'address' : string,
+  'phone' : string,
+  'price' : number,
+}
+export interface OrderInput {
+  'customerName' : string,
+  'paymentMethod' : string,
+  'color' : string,
+  'size' : string,
+  'productId' : bigint,
+  'productName' : string,
+  'email' : string,
+  'address' : string,
+  'phone' : string,
+  'price' : number,
+}
 export interface Product {
   'id' : bigint,
   'imageUrls' : Array<string>,
@@ -80,19 +108,24 @@ export interface _SERVICE {
     ],
     Array<Product>
   >,
+  'getAllCategories' : ActorMethod<[], Array<string>>,
+  'getAllOrders' : ActorMethod<[], Array<Order>>,
   'getAllProducts' : ActorMethod<[], Array<Product>>,
   'getBestsellers' : ActorMethod<[], Array<Product>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getMyOrders' : ActorMethod<[], Array<Order>>,
   'getProductById' : ActorMethod<[bigint], Product>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getWishlist' : ActorMethod<[], Wishlist>,
   'getWishlistCount' : ActorMethod<[], bigint>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isCallerStoreOwner' : ActorMethod<[], boolean>,
+  'placeOrder' : ActorMethod<[OrderInput], bigint>,
   'removeFromWishlist' : ActorMethod<[bigint], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'searchProducts' : ActorMethod<[string], Array<Product>>,
+  'updateOrderStatus' : ActorMethod<[bigint, string], undefined>,
   'updateProduct' : ActorMethod<[bigint, ProductInput], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

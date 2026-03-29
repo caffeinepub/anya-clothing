@@ -115,6 +115,18 @@ export type Wishlist = Array<bigint>;
 export interface _CaffeineStorageRefillInformation {
     proposed_top_up_amount?: bigint;
 }
+export interface OrderInput {
+    customerName: string;
+    paymentMethod: string;
+    color: string;
+    size: string;
+    productId: bigint;
+    productName: string;
+    email: string;
+    address: string;
+    phone: string;
+    price: number;
+}
 export interface Color {
     hex: string;
     name: string;
@@ -122,6 +134,22 @@ export interface Color {
 export interface _CaffeineStorageCreateCertificateResult {
     method: string;
     blob_hash: string;
+}
+export interface Order {
+    id: bigint;
+    customerName: string;
+    status: string;
+    paymentMethod: string;
+    userId: Principal;
+    createdAt: bigint;
+    color: string;
+    size: string;
+    productId: bigint;
+    productName: string;
+    email: string;
+    address: string;
+    phone: string;
+    price: number;
 }
 export interface UserProfile {
     name: string;
@@ -148,19 +176,24 @@ export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     deleteProduct(id: bigint): Promise<void>;
     filterProducts(sizes: Array<string> | null, colors: Array<Color> | null, minPrice: number | null, maxPrice: number | null, category: string | null): Promise<Array<Product>>;
+    getAllCategories(): Promise<Array<string>>;
+    getAllOrders(): Promise<Array<Order>>;
     getAllProducts(): Promise<Array<Product>>;
     getBestsellers(): Promise<Array<Product>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getMyOrders(): Promise<Array<Order>>;
     getProductById(id: bigint): Promise<Product>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getWishlist(): Promise<Wishlist>;
     getWishlistCount(): Promise<bigint>;
     isCallerAdmin(): Promise<boolean>;
     isCallerStoreOwner(): Promise<boolean>;
+    placeOrder(input: OrderInput): Promise<bigint>;
     removeFromWishlist(productId: bigint): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     searchProducts(searchText: string): Promise<Array<Product>>;
+    updateOrderStatus(orderId: bigint, newStatus: string): Promise<void>;
     updateProduct(id: bigint, input: ProductInput): Promise<void>;
 }
 import type { Color as _Color, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
@@ -334,6 +367,34 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getAllCategories(): Promise<Array<string>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllCategories();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllCategories();
+            return result;
+        }
+    }
+    async getAllOrders(): Promise<Array<Order>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllOrders();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllOrders();
+            return result;
+        }
+    }
     async getAllProducts(): Promise<Array<Product>> {
         if (this.processError) {
             try {
@@ -388,6 +449,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getCallerUserRole();
             return from_candid_UserRole_n15(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getMyOrders(): Promise<Array<Order>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getMyOrders();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getMyOrders();
+            return result;
         }
     }
     async getProductById(arg0: bigint): Promise<Product> {
@@ -474,6 +549,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async placeOrder(arg0: OrderInput): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.placeOrder(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.placeOrder(arg0);
+            return result;
+        }
+    }
     async removeFromWishlist(arg0: bigint): Promise<void> {
         if (this.processError) {
             try {
@@ -513,6 +602,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.searchProducts(arg0);
+            return result;
+        }
+    }
+    async updateOrderStatus(arg0: bigint, arg1: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateOrderStatus(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateOrderStatus(arg0, arg1);
             return result;
         }
     }

@@ -31,6 +31,14 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -40,6 +48,7 @@ import {
   Package,
   Pencil,
   Plus,
+  ShoppingCart,
   Star,
   Trash2,
   Upload,
@@ -48,13 +57,16 @@ import {
 import { motion } from "motion/react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import type { Color, Product, ProductInput } from "../backend.d";
+import type { Color, Order, Product, ProductInput } from "../backend.d";
+import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useAddProduct,
   useDeleteProduct,
+  useGetAllOrders,
   useGetAllProducts,
   useIsCallerAdmin,
+  useUpdateOrderStatus,
   useUpdateProduct,
 } from "../hooks/useQueries";
 import { useStorageClient } from "../hooks/useStorageClient";
@@ -643,12 +655,16 @@ const DEFAULT_FORM: ProductInput = {
 export default function AdminPage() {
   const { data: isAdmin, isLoading: adminLoading } = useIsCallerAdmin();
   const { data: products, isLoading: productsLoading } = useGetAllProducts();
-  const { login, loginStatus } = useInternetIdentity();
+  const { login, loginStatus, identity } = useInternetIdentity();
+  const isLoggedIn = !!identity && !identity.getPrincipal().isAnonymous();
   const storageClient = useStorageClient();
+  const { actor, isFetching: actorFetching } = useActor();
 
   const addProduct = useAddProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
+  const { data: allOrders = [], isLoading: ordersLoading } = useGetAllOrders();
+  const updateOrderStatus = useUpdateOrderStatus();
 
   const [activeTab, setActiveTab] = useState("products");
   const [customCollections, setCustomCollections] = useState<string[]>([]);
@@ -811,6 +827,16 @@ export default function AdminPage() {
   }
 
   async function handleSeedProducts() {
+    if (!isLoggedIn) {
+      toast.error("Please log in first to seed products.");
+      return;
+    }
+    if (!actor) {
+      toast.error(
+        "Authentication not ready. Please wait a moment and try again.",
+      );
+      return;
+    }
     if (products && products.length > 0) {
       toast.warning(
         "Products already seeded. Clear existing products first or add individually.",
@@ -823,8 +849,10 @@ export default function AdminPage() {
         await addProduct.mutateAsync(product);
       }
       toast.success(`${SAMPLE_PRODUCTS.length} products seeded successfully!`);
-    } catch {
-      toast.error("Seeding failed.");
+    } catch (err) {
+      toast.error(
+        `Seeding failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       setSeeding(false);
     }
@@ -843,7 +871,7 @@ export default function AdminPage() {
     toast.success(`Collection "${trimmed}" added!`);
   }
 
-  if (adminLoading) {
+  if (adminLoading && !isLoggedIn) {
     return (
       <main className="max-w-6xl mx-auto px-4 py-12">
         <Skeleton className="h-10 w-48 mb-8" />
@@ -856,7 +884,7 @@ export default function AdminPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!isLoggedIn && !isAdmin) {
     return (
       <main className="max-w-md mx-auto px-4 py-20 text-center">
         <h1 className="font-serif text-3xl mb-4">Admin Access</h1>
@@ -865,15 +893,32 @@ export default function AdminPage() {
         </p>
         <Button
           onClick={login}
-          disabled={loginStatus === "logging-in"}
+          disabled={
+            loginStatus === "logging-in" || loginStatus === "initializing"
+          }
           className="bg-primary text-primary-foreground"
           data-ocid="admin.primary_button"
         >
-          {loginStatus === "logging-in" ? (
+          {loginStatus === "logging-in" || loginStatus === "initializing" ? (
             <Loader2 size={16} className="mr-2 animate-spin" />
           ) : null}
-          Login
+          {loginStatus === "initializing"
+            ? "Loading..."
+            : loginStatus === "logging-in"
+              ? "Opening login window..."
+              : "Login with Internet Identity"}
         </Button>
+        {loginStatus === "logging-in" && (
+          <p className="text-muted-foreground text-xs mt-3">
+            A login window should have opened. If you don't see it, check for a
+            popup blocked notification in your browser's address bar.
+          </p>
+        )}
+        {loginStatus === "loginError" && (
+          <p className="text-destructive text-xs mt-3">
+            Login failed. Please try again.
+          </p>
+        )}
       </main>
     );
   }
@@ -897,7 +942,7 @@ export default function AdminPage() {
             <Button
               variant="outline"
               onClick={handleSeedProducts}
-              disabled={seeding}
+              disabled={seeding || actorFetching || !isLoggedIn}
               className="border-warm-border text-xs tracking-widest uppercase"
               data-ocid="admin.secondary_button"
             >
@@ -932,6 +977,18 @@ export default function AdminPage() {
               data-ocid="admin.tab"
             >
               <Layers size={14} /> Collections
+            </TabsTrigger>
+            <TabsTrigger
+              value="orders"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs tracking-widest uppercase gap-1.5"
+              data-ocid="admin.tab"
+            >
+              <ShoppingCart size={14} /> Orders
+              {allOrders.length > 0 && (
+                <span className="ml-1 bg-primary/20 text-primary text-[10px] px-1.5 py-0.5 rounded-full">
+                  {allOrders.length}
+                </span>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -1056,7 +1113,7 @@ export default function AdminPage() {
                 <Button
                   variant="outline"
                   onClick={handleSeedProducts}
-                  disabled={seeding}
+                  disabled={seeding || actorFetching || !isLoggedIn}
                   className="border-warm-border text-xs tracking-widest uppercase"
                 >
                   {seeding ? (
@@ -1133,6 +1190,135 @@ export default function AdminPage() {
                 </motion.div>
               ))}
             </div>
+          </TabsContent>
+
+          {/* Orders Tab */}
+          <TabsContent value="orders">
+            {ordersLoading ? (
+              <div className="space-y-3" data-ocid="admin.loading_state">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-14 w-full" />
+                ))}
+              </div>
+            ) : allOrders.length === 0 ? (
+              <div className="text-center py-20" data-ocid="admin.empty_state">
+                <ShoppingCart
+                  size={48}
+                  className="text-muted-foreground mx-auto mb-4 opacity-30"
+                />
+                <p className="text-muted-foreground">No orders yet.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto" data-ocid="admin.table">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs uppercase tracking-wider">
+                        ID
+                      </TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider">
+                        Customer
+                      </TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider">
+                        Product
+                      </TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider">
+                        Size
+                      </TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider">
+                        Color
+                      </TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider">
+                        Price
+                      </TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider">
+                        Phone
+                      </TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider">
+                        Status
+                      </TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider">
+                        Date
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allOrders.map((order: Order, idx: number) => (
+                      <TableRow
+                        key={String(order.id)}
+                        data-ocid={`admin.row.${idx + 1}`}
+                      >
+                        <TableCell className="text-xs text-muted-foreground">
+                          #{String(order.id)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium text-sm">
+                            {order.customerName}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {order.email}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm max-w-[140px]">
+                          <div className="truncate">{order.productName}</div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {order.address}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm">{order.size}</TableCell>
+                        <TableCell className="text-sm">{order.color}</TableCell>
+                        <TableCell className="text-sm font-medium">
+                          ₹{Number(order.price).toLocaleString("en-IN")}
+                        </TableCell>
+                        <TableCell className="text-sm">{order.phone}</TableCell>
+                        <TableCell>
+                          <select
+                            value={order.status}
+                            onChange={async (e) => {
+                              try {
+                                await updateOrderStatus.mutateAsync({
+                                  orderId: order.id,
+                                  status: e.target.value,
+                                });
+                                toast.success("Status updated");
+                              } catch {
+                                toast.error("Failed to update status");
+                              }
+                            }}
+                            className={`text-xs border rounded px-2 py-1 cursor-pointer font-medium ${
+                              order.status === "Pending"
+                                ? "bg-yellow-50 border-yellow-300 text-yellow-800"
+                                : order.status === "Processing"
+                                  ? "bg-blue-50 border-blue-300 text-blue-800"
+                                  : order.status === "Shipped"
+                                    ? "bg-purple-50 border-purple-300 text-purple-800"
+                                    : order.status === "Delivered"
+                                      ? "bg-green-50 border-green-300 text-green-800"
+                                      : "bg-secondary border-warm-border text-foreground"
+                            }`}
+                            data-ocid={`admin.select.${idx + 1}`}
+                          >
+                            <option value="Pending">Pending</option>
+                            <option value="Processing">Processing</option>
+                            <option value="Shipped">Shipped</option>
+                            <option value="Delivered">Delivered</option>
+                          </select>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(
+                            Number(order.createdAt / BigInt(1_000_000)),
+                          ).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </motion.div>

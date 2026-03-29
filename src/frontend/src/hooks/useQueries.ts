@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Color, Product, ProductInput } from "../backend.d";
+import type {
+  Color,
+  Order,
+  OrderInput,
+  Product,
+  ProductInput,
+} from "../backend.d";
 import { useActor } from "./useActor";
+import { useInternetIdentity } from "./useInternetIdentity";
 
 export function useGetAllProducts() {
   const { actor, isFetching } = useActor();
@@ -102,13 +109,20 @@ export function useGetWishlistCount() {
 
 export function useIsCallerAdmin() {
   const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  const principal = identity?.getPrincipal().toString() ?? "anonymous";
   return useQuery<boolean>({
-    queryKey: ["isAdmin"],
+    queryKey: ["isAdmin", principal],
     queryFn: async () => {
       if (!actor) return false;
-      return actor.isCallerStoreOwner();
+      try {
+        return await actor.isCallerStoreOwner();
+      } catch {
+        return false;
+      }
     },
     enabled: !!actor && !isFetching,
+    staleTime: 0,
   });
 }
 
@@ -181,6 +195,69 @@ export function useDeleteProduct() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["bestsellers"] });
+    },
+  });
+}
+
+// ── Orders ──
+
+export function usePlaceOrder() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: OrderInput) => {
+      if (!actor) throw new Error("Not connected");
+      return actor.placeOrder(input);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myOrders"] });
+      queryClient.invalidateQueries({ queryKey: ["allOrders"] });
+    },
+  });
+}
+
+export function useGetMyOrders() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  const isLoggedIn = !!identity && !identity.getPrincipal().isAnonymous();
+  return useQuery<Order[]>({
+    queryKey: ["myOrders"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getMyOrders();
+    },
+    enabled: !!actor && !isFetching && isLoggedIn,
+  });
+}
+
+export function useGetAllOrders() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  const isLoggedIn = !!identity && !identity.getPrincipal().isAnonymous();
+  return useQuery<Order[]>({
+    queryKey: ["allOrders"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllOrders();
+    },
+    enabled: !!actor && !isFetching && isLoggedIn,
+  });
+}
+
+export function useUpdateOrderStatus() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      orderId,
+      status,
+    }: { orderId: bigint; status: string }) => {
+      if (!actor) throw new Error("Not connected");
+      return actor.updateOrderStatus(orderId, status);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["allOrders"] });
+      queryClient.invalidateQueries({ queryKey: ["myOrders"] });
     },
   });
 }

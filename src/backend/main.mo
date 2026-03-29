@@ -1,7 +1,5 @@
-import MixinStorage "blob-storage/Mixin";
 import Map "mo:core/Map";
 import Text "mo:core/Text";
-import Int "mo:core/Int";
 import Nat "mo:core/Nat";
 import Time "mo:core/Time";
 import Order "mo:core/Order";
@@ -10,11 +8,12 @@ import Principal "mo:core/Principal";
 import Float "mo:core/Float";
 import Iter "mo:core/Iter";
 import Runtime "mo:core/Runtime";
+import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
 actor {
-  // Integrate storage and access control
+  // Integrate authorization system
   let accessControlState = AccessControl.initState();
 
   include MixinAuthorization(accessControlState);
@@ -34,10 +33,17 @@ actor {
     isBestseller : Bool;
     createdAt : Int;
   };
-
-  type Color = {
+  type BestSeller = {
+    id : Nat;
     name : Text;
-    hex : Text;
+    category : Text;
+    description : Text;
+    price : Float;
+    sizes : [Text];
+    colors : [Color];
+    imageUrls : [Text];
+    isBestseller : Bool;
+    createdAt : Int;
   };
 
   type ProductInput = {
@@ -49,6 +55,41 @@ actor {
     colors : [Color];
     imageUrls : [Text];
     isBestseller : Bool;
+  };
+
+  type Color = {
+    name : Text;
+    hex : Text;
+  };
+
+  type OrderInput = {
+    productId : Nat;
+    productName : Text;
+    customerName : Text;
+    phone : Text;
+    email : Text;
+    address : Text;
+    size : Text;
+    color : Text;
+    price : Float;
+    paymentMethod : Text;
+  };
+
+  type Order = {
+    id : Nat;
+    userId : Principal;
+    productId : Nat;
+    productName : Text;
+    customerName : Text;
+    phone : Text;
+    email : Text;
+    address : Text;
+    size : Text;
+    color : Text;
+    price : Float;
+    status : Text;
+    paymentMethod : Text;
+    createdAt : Int;
   };
 
   public type UserProfile = {
@@ -76,46 +117,21 @@ actor {
   };
 
   let products = Map.empty<Nat, Product>();
+  let orders = Map.empty<Nat, Order>();
   let wishlists = Map.empty<Principal, Wishlist>();
   let userProfiles = Map.empty<Principal, UserProfile>();
   var productIdCounter = 0;
-
-  // Helper: check if caller is authenticated (not anonymous)
-  func isAuthenticated(caller : Principal) : Bool {
-    not caller.isAnonymous();
-  };
+  var orderIdCounter = 0;
 
   // Check if caller is store owner (authenticated user)
   public query ({ caller }) func isCallerStoreOwner() : async Bool {
-    isAuthenticated(caller);
+    (AccessControl.getUserRole(accessControlState, caller) == #user) or (AccessControl.getUserRole(accessControlState, caller) == #admin);
   };
 
-  // User Profile Functions
-  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not isAuthenticated(caller)) {
-      Runtime.trap("Unauthorized: Must be logged in");
-    };
-    userProfiles.get(caller);
-  };
-
-  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
-    if (caller != user and not isAuthenticated(caller)) {
-      Runtime.trap("Unauthorized: Must be logged in");
-    };
-    userProfiles.get(user);
-  };
-
-  public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    if (not isAuthenticated(caller)) {
-      Runtime.trap("Unauthorized: Must be logged in");
-    };
-    userProfiles.add(caller, profile);
-  };
-
-  // Product CRUD (any authenticated user - store owner)
+  // Product CRUD (admin only)
   public shared ({ caller }) func addProduct(input : ProductInput) : async Nat {
-    if (not isAuthenticated(caller)) {
-      Runtime.trap("Unauthorized: Must be logged in to add products");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Must be admin to add products");
     };
     let product : Product = {
       input with
@@ -129,8 +145,8 @@ actor {
   };
 
   public shared ({ caller }) func updateProduct(id : Nat, input : ProductInput) : async () {
-    if (not isAuthenticated(caller)) {
-      Runtime.trap("Unauthorized: Must be logged in to update products");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Must be admin to update products");
     };
     let product : Product = getProductInternal(id);
     let updatedProduct : Product = {
@@ -141,8 +157,8 @@ actor {
   };
 
   public shared ({ caller }) func deleteProduct(id : Nat) : async () {
-    if (not isAuthenticated(caller)) {
-      Runtime.trap("Unauthorized: Must be logged in to delete products");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Must be admin to delete products");
     };
     if (not products.containsKey(id)) {
       Runtime.trap("Product not found");
@@ -163,6 +179,21 @@ actor {
     products.values().toArray().filter(
       func(product) { product.isBestseller }
     ).sort(Product.compareByPrice);
+  };
+
+  public query func getAllCategories() : async [Text] {
+    let seenCategories = Map.empty<Text, Bool>();
+
+    for (product in products.values()) {
+      switch (seenCategories.get(product.category)) {
+        case (null) {
+          seenCategories.add(product.category, true); // Add category if not seen
+        };
+        case (_) {};
+      };
+    };
+
+    seenCategories.keys().toArray();
   };
 
   public query func searchProducts(searchText : Text) : async [Product] {
@@ -220,8 +251,8 @@ actor {
 
   // Wishlist functionality (authenticated users only)
   public shared ({ caller }) func addToWishlist(productId : Nat) : async () {
-    if (not isAuthenticated(caller)) {
-      Runtime.trap("Unauthorized: Must be logged in");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Must be authenticated to add to wishlist");
     };
     ignore getProductInternal(productId);
     let currentWishlist = switch (wishlists.get(caller)) {
@@ -236,8 +267,8 @@ actor {
   };
 
   public shared ({ caller }) func removeFromWishlist(productId : Nat) : async () {
-    if (not isAuthenticated(caller)) {
-      Runtime.trap("Unauthorized: Must be logged in");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Must be authenticated to remove from wishlist");
     };
     let currentWishlist = switch (wishlists.get(caller)) {
       case (null) { return };
@@ -248,8 +279,8 @@ actor {
   };
 
   public query ({ caller }) func getWishlist() : async Wishlist {
-    if (not isAuthenticated(caller)) {
-      Runtime.trap("Unauthorized: Must be logged in");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Must be authenticated to get wishlist");
     };
     switch (wishlists.get(caller)) {
       case (null) { [] };
@@ -258,8 +289,8 @@ actor {
   };
 
   public query ({ caller }) func getWishlistCount() : async Nat {
-    if (not isAuthenticated(caller)) {
-      Runtime.trap("Unauthorized: Must be logged in");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Must be authenticated to get wishlist count");
     };
     switch (wishlists.get(caller)) {
       case (null) { 0 };
@@ -273,5 +304,78 @@ actor {
       case (null) { Runtime.trap("Product not found") };
       case (?product) { product };
     };
+  };
+
+  // ORDER MANAGEMENT (authenticated users for placing orders, admin for managing)
+  public shared ({ caller }) func placeOrder(input : OrderInput) : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Must be authenticated to place order");
+    };
+    ignore getProductInternal(input.productId);
+    let order : Order = {
+      input with
+      id = orderIdCounter;
+      userId = caller;
+      status = "Pending";
+      createdAt = Time.now();
+    };
+    let newOrderId = orderIdCounter;
+    orders.add(newOrderId, order);
+    orderIdCounter += 1;
+    newOrderId;
+  };
+
+  public shared ({ caller }) func updateOrderStatus(orderId : Nat, newStatus : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Must be admin to update order status");
+    };
+    let order : Order = getOrderInternal(orderId);
+    let updatedOrder : Order = {
+      order with status = newStatus;
+    };
+    orders.add(orderId, updatedOrder);
+  };
+
+  public query ({ caller }) func getMyOrders() : async [Order] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Must be authenticated to get my orders");
+    };
+    orders.values().toArray().filter(func(order) { order.userId == caller });
+  };
+
+  public query ({ caller }) func getAllOrders() : async [Order] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Must be admin to get all orders");
+    };
+    orders.values().toArray();
+  };
+
+  func getOrderInternal(id : Nat) : Order {
+    switch (orders.get(id)) {
+      case (null) { Runtime.trap("Order not found") };
+      case (?order) { order };
+    };
+  };
+
+  // User Profile Functions
+  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can save profiles");
+    };
+    userProfiles.get(caller);
+  };
+
+  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own profile");
+    };
+    userProfiles.get(user);
+  };
+
+  public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can save profiles");
+    };
+    userProfiles.add(caller, profile);
   };
 };
