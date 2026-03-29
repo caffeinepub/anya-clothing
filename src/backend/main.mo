@@ -187,7 +187,7 @@ actor {
     for (product in products.values()) {
       switch (seenCategories.get(product.category)) {
         case (null) {
-          seenCategories.add(product.category, true); // Add category if not seen
+          seenCategories.add(product.category, true);
         };
         case (_) {};
       };
@@ -306,12 +306,9 @@ actor {
     };
   };
 
-  // ORDER MANAGEMENT (authenticated users for placing orders, admin for managing)
+  // ORDER MANAGEMENT - guests can place orders, admin manages them
   public shared ({ caller }) func placeOrder(input : OrderInput) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Must be authenticated to place order");
-    };
-    ignore getProductInternal(input.productId);
+    // Allow both authenticated users and anonymous guests to place orders
     let order : Order = {
       input with
       id = orderIdCounter;

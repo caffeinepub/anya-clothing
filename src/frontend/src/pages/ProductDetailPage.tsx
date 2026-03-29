@@ -30,7 +30,7 @@ import {
   useRemoveFromWishlist,
 } from "../hooks/useQueries";
 
-const WHATSAPP_NUMBER = "919876543210";
+const WHATSAPP_NUMBER = "918347548407";
 
 export default function ProductDetailPage() {
   const { id } = useParams({ strict: false }) as { id: string };
